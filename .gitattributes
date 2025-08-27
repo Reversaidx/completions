@@ -1,0 +1,4 @@
+data/ filter=lfs diff=lfs merge=lfs -text
+data/** filter=lfs diff=lfs merge=lfs -text
+data/raw_dataset.txt filter=lfs diff=lfs merge=lfs -text
+raw_dataset.txt filter=lfs diff=lfs merge=lfs -text
