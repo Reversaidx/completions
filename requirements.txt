@@ -82,3 +82,4 @@ nltk==3.9.1
 absl-py==2.3.0
 rouge_score==0.1.2
 pydantic
+pydantic-settings
