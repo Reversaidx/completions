@@ -64,11 +64,15 @@ class MaskedBertDataset(Dataset):
     def __init__(self, texts, tokenizer):
         self.samples = []
         for line in texts:
-            token_ids = tokenizer.encode(line, add_special_tokens=False, max_length=512, truncation=True)
-            self.samples.append((token_ids[:-1], token_ids[-1:]))
+            token_ids = tokenizer.encode(line, add_special_tokens=True, max_length=512, truncation=True)
+            for i in range(1, len(token_ids)):
+                x = token_ids[:i]      # постепенно удлиняющиеся префиксы
+                y = token_ids[i:i+1]   # следующий токен
+                self.samples.append((x, y))
+
 
     def __len__(self):
-        return len(self.samples)
+            return len(self.samples)
 
 
     def __getitem__(self, idx):
@@ -103,6 +107,7 @@ def collate_fn(batch):
     target=[]
     for i,seq in enumerate(batch):
         target.append(seq[1])
+    target = torch.cat(target, dim=0)
     return padded_batch,target,attention_mask
 
 
@@ -127,16 +132,14 @@ class BiRNNClassifier(nn.Module):
         self.fc = nn.Linear(hidden_dim, vocab_size)
 
 
-    def forward(self, x,attention_mask):
+    def forward(self, x, attention_mask):
         x = self.embedding(x)
         rnn_out, _ = self.rnn(x)
-        # mean pooling по attention_mask
-        mask = attention_mask.unsqueeze(2).expand_as(rnn_out)
-        masked_out = rnn_out * mask
-        summed = masked_out.sum(dim=1)
-        lengths = attention_mask.sum(dim=1).unsqueeze(1)
-        mean_pooled = summed / lengths
-        out = self.dropout(mean_pooled)
+        # берем последнее скрытое состояние для каждой последовательности
+        last_indices = attention_mask.sum(dim=1) - 1  # индексы последних реальных токенов
+        batch_indices = torch.arange(x.size(0))
+        final_hidden = rnn_out[batch_indices, last_indices]  # [batch, hidden_dim]
+        out = self.dropout(final_hidden)
         return self.fc(out)
 #
 #
@@ -172,20 +175,50 @@ def evaluate(model, loader):
 #
 #
 # # Основной цикл обучения
-n_epochs = 3
+n_epochs = 5
 #
 for epoch in range(n_epochs):
     model.train()
     train_loss = 0.
     for x_batch,y_batch,attention_mask in tqdm(train_loader):
         optimizer.zero_grad()
-        x_batch=x_batch[:,:-1]
         loss = criterion(model(x_batch,attention_mask),y_batch)
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
-
-
+    #
+    #
     # train_loss /= len(train_loader)
     # val_loss, val_acc = evaluate(model, val_loader)
     # print(f"Epoch {epoch+1} | Train Loss: {train_loss:.3f} | Val Loss: {val_loss:.3f} | Val Accuracy: {val_acc:.2%}")
+
+
+model.eval()
+bad_cases, good_cases = [], []
+with torch.no_grad():
+    for x_batch, y_batch,attention_mask in val_loader:
+        x_batch, y_batch = x_batch, y_batch
+        logits = model(x_batch,attention_mask)
+        preds = torch.argmax(logits, dim=1)
+        for i in range(len(y_batch)):
+            input_tokens = tokenizer.convert_ids_to_tokens(x_batch[i].tolist())
+            true_tok = tokenizer.convert_ids_to_tokens([y_batch[i].item()])[0]
+            pred_tok = tokenizer.convert_ids_to_tokens([preds[i].item()])[0]
+
+            if preds[i] != y_batch[i]:
+                bad_cases.append((input_tokens, true_tok, pred_tok))
+            else:
+                good_cases.append((input_tokens, true_tok, pred_tok))
+random.seed(42)
+bad_cases_sampled = random.sample(bad_cases, 5)
+good_cases_sampled = random.sample(good_cases, 5)
+
+print("\nSome incorrect predictions:")
+for context, true_tok, pred_tok in bad_cases_sampled:
+    print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
+
+
+print("\nSome correct predictions:")
+for context, true_tok, pred_tok in good_cases_sampled:
+    if true_tok == pred_tok:
+        print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
