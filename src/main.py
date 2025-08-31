@@ -47,7 +47,7 @@ texts = [line for line in dataArr if len(line.split()) >= seq_len]
 
 # "чистим" тексты
 #TODO process all texts
-cleaned_texts = list(map(clean_string, texts))[:1000]
+cleaned_texts = list(map(clean_string, texts))
 
 test_text=cleaned_texts[round(len(cleaned_texts) - ((len(cleaned_texts) + len(cleaned_texts) * 0.10))):]
 
@@ -119,10 +119,9 @@ train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True,collate_fn=
 val_loader = DataLoader(val_dataset, batch_size=64,collate_fn=collate_fn)
 
 class BiRNNClassifier(nn.Module):
-    def __init__(self, vocab_size, hidden_dim=128, combine="concat"):
+    def __init__(self, vocab_size, hidden_dim=128):
         super().__init__()
         self.embedding = nn.Embedding(vocab_size, hidden_dim)
-        self.combine = combine
 
 
         self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True, bidirectional=False)
@@ -153,7 +152,7 @@ hidden_dim = 128
 #
 #
 #
-model = BiRNNClassifier(vocab_size, combine="concat")
+model = BiRNNClassifier(vocab_size)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
 criterion = nn.CrossEntropyLoss()
 #
