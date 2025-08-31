@@ -46,6 +46,7 @@ texts = [line for line in dataArr if len(line.split()) >= seq_len]
 
 
 # "чистим" тексты
+#TODO process all texts
 cleaned_texts = list(map(clean_string, texts))[:1000]
 
 test_text=cleaned_texts[round(len(cleaned_texts) - ((len(cleaned_texts) + len(cleaned_texts) * 0.10))):]
@@ -63,15 +64,17 @@ class MaskedBertDataset(Dataset):
     def __init__(self, texts, tokenizer):
         self.samples = []
         for line in texts:
-            token_ids = tokenizer.encode(line, add_special_tokens=True, max_length=512, truncation=True)
-            self.samples.append(token_ids)
+            token_ids = tokenizer.encode(line, add_special_tokens=False, max_length=512, truncation=True)
+            self.samples.append((token_ids[:-1], token_ids[-1:]))
 
     def __len__(self):
         return len(self.samples)
 
 
     def __getitem__(self, idx):
-        return torch.tensor(self.samples[idx])
+        x, y = self.samples[idx]
+        return torch.tensor(x), torch.tensor(y)
+
 
 
 # Загружаем BERT токенизатор
@@ -86,17 +89,21 @@ test_dataset = MaskedBertDataset(test_text, tokenizer)
 def collate_fn(batch):
     # batch - это список тензоров разной длины
     # что должно быть на выходе?
-    max_len = max(len(seq) for seq in batch)
+    max_len = max(len(seq[0]) for seq in batch)
     batch_size=len(batch)
     padded_batch = torch.zeros(batch_size, max_len, dtype=torch.long)
     for i, seq in enumerate(batch):
+        seq=seq[0]
         padded_batch[i, :len(seq)] = seq  # копируем seq в i-ую строку
 
     attention_mask = torch.zeros(batch_size, max_len, dtype=torch.long)
     for i, seq in enumerate(batch):
+        seq=seq[0]
         attention_mask[i, :len(seq)] = 1
-
-    return padded_batch,attention_mask
+    target=[]
+    for i,seq in enumerate(batch):
+        target.append(seq[1])
+    return padded_batch,target,attention_mask
 
 
 
@@ -114,18 +121,23 @@ class BiRNNClassifier(nn.Module):
 
 
         self.rnn = nn.LSTM(hidden_dim, hidden_dim, batch_first=True, bidirectional=False)
+        self.dropout = nn.Dropout(0.5)
 
 
         self.fc = nn.Linear(hidden_dim, vocab_size)
 
 
-    def forward(self, x):
-        emb = self.embedding(x)
-        out, _ = self.rnn(emb)
-        hidden_out = out[:, -1, :]
-        linear_out = self.fc(out)
-        return linear_out
-
+    def forward(self, x,attention_mask):
+        x = self.embedding(x)
+        rnn_out, _ = self.rnn(x)
+        # mean pooling по attention_mask
+        mask = attention_mask.unsqueeze(2).expand_as(rnn_out)
+        masked_out = rnn_out * mask
+        summed = masked_out.sum(dim=1)
+        lengths = attention_mask.sum(dim=1).unsqueeze(1)
+        mean_pooled = summed / lengths
+        out = self.dropout(mean_pooled)
+        return self.fc(out)
 #
 #
 def count_parameters(model):
@@ -165,11 +177,10 @@ n_epochs = 3
 for epoch in range(n_epochs):
     model.train()
     train_loss = 0.
-    for x_batch,attention_mask in tqdm(train_loader):
+    for x_batch,y_batch,attention_mask in tqdm(train_loader):
         optimizer.zero_grad()
         x_batch=x_batch[:,:-1]
-        targets=x_batch[:,1:]
-        loss = criterion(model(x_batch),targets)
+        loss = criterion(model(x_batch,attention_mask),y_batch)
         loss.backward()
         optimizer.step()
         train_loss += loss.item()
