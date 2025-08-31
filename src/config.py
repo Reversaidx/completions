@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 import yaml
 from pathlib import Path
+import torch
 
 
 class ModelConfig(BaseSettings):
@@ -14,6 +15,16 @@ class ModelConfig(BaseSettings):
     class Config:
         env_prefix = "MODEL_"
         case_sensitive = False
+
+
+def get_device() -> str:
+    """Определяет лучшее доступное устройство"""
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
 
 
 def load_config(config_path: str = "../configs/model.yaml") -> ModelConfig:

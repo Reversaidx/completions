@@ -21,11 +21,12 @@ class LSTMLanguageModel(nn.Module):
         return self.fc(out)
 
     def generate(self, text, tokenizer, max_tokens=10):
+        device = next(self.parameters()).device
         x = tokenizer.encode(text, add_special_tokens=True, max_length=512, truncation=True)
-        x = torch.tensor(x).unsqueeze(0)
+        x = torch.tensor(x).unsqueeze(0).to(device)
         
         for _ in range(max_tokens):
-            attention_mask = torch.ones(1, x.size(1), dtype=torch.long)
+            attention_mask = torch.ones(1, x.size(1), dtype=torch.long).to(device)
             logits = self.forward(x, attention_mask)
             next_token_id = torch.argmax(logits, dim=1)
 

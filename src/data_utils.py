@@ -12,7 +12,7 @@ def clean_string(text):
     return text
 
 
-def load_and_prepare_data(data_path="../data/raw_dataset.txt", seq_len=2, max_samples=1000):
+def load_and_prepare_data(data_path="../data/raw_dataset.txt", seq_len=2, max_samples=None):
     """Загружает и подготавливает данные"""
     dataArr = []
     with open(data_path, "r") as f:
@@ -20,7 +20,10 @@ def load_and_prepare_data(data_path="../data/raw_dataset.txt", seq_len=2, max_sa
             dataArr.append(data)
     
     texts = [line for line in dataArr if len(line.split()) >= seq_len]
-    cleaned_texts = list(map(clean_string, texts))[:max_samples]
+    cleaned_texts = list(map(clean_string, texts))
+    
+    if max_samples is not None:
+        cleaned_texts = cleaned_texts[:max_samples]
     
     test_text = cleaned_texts[round(len(cleaned_texts) * 0.9):]
     remaining_texts = cleaned_texts[:round(len(cleaned_texts) * 0.9)]
