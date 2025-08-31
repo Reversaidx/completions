@@ -47,7 +47,7 @@ texts = [line for line in dataArr if len(line.split()) >= seq_len]
 
 # "чистим" тексты
 #TODO process all texts
-cleaned_texts = list(map(clean_string, texts))
+cleaned_texts = list(map(clean_string, texts))[:1000]
 
 test_text=cleaned_texts[round(len(cleaned_texts) - ((len(cleaned_texts) + len(cleaned_texts) * 0.10))):]
 
@@ -140,6 +140,21 @@ class BiRNNClassifier(nn.Module):
         final_hidden = rnn_out[batch_indices, last_indices]  # [batch, hidden_dim]
         out = self.dropout(final_hidden)
         return self.fc(out)
+
+    def generate(self, text, max_tokens=10):
+        x=tokenizer.encode(text, add_special_tokens=True, max_length=512, truncation=True)
+        x = torch.tensor(x).unsqueeze(0)
+        for _ in range(max_tokens):
+            attention_mask = torch.ones(1, x.size(1), dtype=torch.long)  # все 1, не 0!
+            logits = self.forward(x, attention_mask)
+            next_token_id = torch.argmax(logits, dim=1)  # [1] - ID следующего токена
+
+            if next_token_id.item() == tokenizer.sep_token_id:
+                break
+
+            x = torch.cat([x, next_token_id.unsqueeze(1)], dim=1)  # добавляем токен
+        return tokenizer.convert_ids_to_tokens(x[0])[0]
+
 #
 #
 def count_parameters(model):
@@ -193,31 +208,34 @@ for epoch in range(n_epochs):
 
 
 model.eval()
-bad_cases, good_cases = [], []
 with torch.no_grad():
-    for x_batch, y_batch,attention_mask in val_loader:
-        x_batch, y_batch = x_batch, y_batch
-        logits = model(x_batch,attention_mask)
-        preds = torch.argmax(logits, dim=1)
-        for i in range(len(y_batch)):
-            input_tokens = tokenizer.convert_ids_to_tokens(x_batch[i].tolist())
-            true_tok = tokenizer.convert_ids_to_tokens([y_batch[i].item()])[0]
-            pred_tok = tokenizer.convert_ids_to_tokens([preds[i].item()])[0]
-
-            if preds[i] != y_batch[i]:
-                bad_cases.append((input_tokens, true_tok, pred_tok))
-            else:
-                good_cases.append((input_tokens, true_tok, pred_tok))
-random.seed(42)
-bad_cases_sampled = random.sample(bad_cases, 5)
-good_cases_sampled = random.sample(good_cases, 5)
-
-print("\nSome incorrect predictions:")
-for context, true_tok, pred_tok in bad_cases_sampled:
-    print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
-
-
-print("\nSome correct predictions:")
-for context, true_tok, pred_tok in good_cases_sampled:
-    if true_tok == pred_tok:
-        print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
+    nya=model.generate("hi how are")
+    print(nya)
+# bad_cases, good_cases = [], []
+# with torch.no_grad():
+#     for x_batch, y_batch,attention_mask in val_loader:
+#         x_batch, y_batch = x_batch, y_batch
+#         logits = model(x_batch,attention_mask)
+#         preds = torch.argmax(logits, dim=1)
+#         for i in range(len(y_batch)):
+#             input_tokens = tokenizer.convert_ids_to_tokens(x_batch[i].tolist())
+#             true_tok = tokenizer.convert_ids_to_tokens([y_batch[i].item()])[0]
+#             pred_tok = tokenizer.convert_ids_to_tokens([preds[i].item()])[0]
+#
+#             if preds[i] != y_batch[i]:
+#                 bad_cases.append((input_tokens, true_tok, pred_tok))
+#             else:
+#                 good_cases.append((input_tokens, true_tok, pred_tok))
+# random.seed(42)
+# bad_cases_sampled = random.sample(bad_cases, 5)
+# good_cases_sampled = random.sample(good_cases, 5)
+#
+# print("\nSome incorrect predictions:")
+# for context, true_tok, pred_tok in bad_cases_sampled:
+#     print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
+#
+#
+# print("\nSome correct predictions:")
+# for context, true_tok, pred_tok in good_cases_sampled:
+#     if true_tok == pred_tok:
+#         print(f"Input: {' '.join(context)} | True: {true_tok} | Predicted: {pred_tok}")
