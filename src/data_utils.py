@@ -22,7 +22,6 @@ def load_and_prepare_data(data_path="../data/raw_dataset.txt", seq_len=2, max_sa
     texts = [line for line in dataArr if len(line.split()) >= seq_len]
     cleaned_texts = list(map(clean_string, texts))[:max_samples]
     
-    test_size = 0.10
     test_text = cleaned_texts[round(len(cleaned_texts) * 0.9):]
     remaining_texts = cleaned_texts[:round(len(cleaned_texts) * 0.9)]
     
@@ -54,14 +53,12 @@ class MaskedBertDataset(Dataset):
 
 
 def collate_fn(batch):
-    # batch - это список тензоров разной длины
-    # что должно быть на выходе?
     max_len = max(len(seq[0]) for seq in batch)
     batch_size=len(batch)
     padded_batch = torch.zeros(batch_size, max_len, dtype=torch.long)
     for i, seq in enumerate(batch):
         seq=seq[0]
-        padded_batch[i, :len(seq)] = seq  # копируем seq в i-ую строку
+        padded_batch[i, :len(seq)] = seq
 
     attention_mask = torch.zeros(batch_size, max_len, dtype=torch.long)
     for i, seq in enumerate(batch):

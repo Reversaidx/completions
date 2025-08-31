@@ -12,7 +12,7 @@ class ModelConfig(BaseModel):
     num_epochs: int = 5
 
 
-def load_config(config_path: str = "configs/model.yaml") -> ModelConfig:
+def load_config(config_path: str = "../configs/model.yaml") -> ModelConfig:
     """Загружает конфигурацию из YAML файла"""
     config_file = Path(config_path)
     
