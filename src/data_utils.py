@@ -12,7 +12,7 @@ def clean_string(text):
     return text
 
 
-def load_and_prepare_data(data_path="../data/raw_dataset.txt", seq_len=2, max_samples=None):
+def load_and_prepare_data(data_path="./data/raw_dataset.txt", seq_len=2, max_samples=None):
     """Загружает и подготавливает данные"""
     dataArr = []
     with open(data_path, "r") as f:

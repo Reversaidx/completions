@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from transformers import BertTokenizerFast
 
 from src.config import load_config, get_device
 from src.data_utils import load_and_prepare_data, create_data_loaders
 from src.lstm_model import LSTMLanguageModel
 
 
-def train_model():
+def train_model(max_samples=1000):
     config = load_config()
     device = get_device()
     print(f"Using device: {device}")

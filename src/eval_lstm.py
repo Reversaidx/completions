@@ -37,14 +37,14 @@ def evaluate_with_rouge(model, tokenizer, test_texts):
     return results
 
 
-def main():
+def main(max_samples=100):
     config = load_config()
     
-    train_texts, val_texts, test_texts = load_and_prepare_data()
+    train_texts, val_texts, test_texts = load_and_prepare_data(max_samples=max_samples)
     _, _, test_loader, tokenizer = create_data_loaders(train_texts, val_texts, test_texts, config)
     
     model = LSTMLanguageModel(tokenizer.vocab_size, config)
-    model.load_state_dict(torch.load("../models/model_weights.pth"))
+    model.load_state_dict(torch.load("models/model_weights.pth"))
     
     rouge_results = evaluate_with_rouge(model, tokenizer, test_texts)
     

@@ -36,8 +36,8 @@ def evaluate_transformer_with_rouge(test_texts, max_samples=100):
     return results
 
 
-def main():
-    _, _, test_texts = load_and_prepare_data()
+def main(max_samples=100):
+    _, _, test_texts = load_and_prepare_data(max_samples=max_samples)
     
     rouge_results = evaluate_transformer_with_rouge(test_texts)
     

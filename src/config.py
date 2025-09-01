@@ -10,7 +10,7 @@ class ModelConfig(BaseSettings):
     batch_size: int = 64
     learning_rate: float = 0.002
     max_length: int = 512
-    num_epochs: int = 5
+    num_epochs: int = 1
 
     class Config:
         env_prefix = "MODEL_"
@@ -27,7 +27,7 @@ def get_device() -> str:
         return "cpu"
 
 
-def load_config(config_path: str = "../configs/model.yaml") -> ModelConfig:
+def load_config(config_path: str = "configs/model.yaml") -> ModelConfig:
     """Загружает конфигурацию из YAML файла с поддержкой env переменных"""
     config_file = Path(config_path)
     
