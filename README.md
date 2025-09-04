@@ -7,6 +7,7 @@
 1. Клонировать репозиторий
 2. Установить зависимости:
 ```bash
+wget https://code.s3.yandex.net/deep-learning/tweets.txt -O data/raw_dataset.txt
 pip install torch transformers pydantic-settings pyyaml scikit-learn tqdm rouge-score
 ```
 

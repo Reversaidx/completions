@@ -8,7 +8,10 @@ from sklearn.model_selection import train_test_split
 def clean_string(text):
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s]', '', text)
+    text = re.sub(r'\b@\w*\b', '', text)
+    text = re.sub(r'\bhttp\w*\b', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
+
     return text
 
 
@@ -50,7 +53,7 @@ class MaskedBertDataset(Dataset):
 
     def __getitem__(self, idx):
         x, y = self.samples[idx]
-        return torch.tensor(x), torch.tensor(y)
+        return torch.tensor(x, dtype=torch.long), torch.tensor(y, dtype=torch.long)
 
 
 
