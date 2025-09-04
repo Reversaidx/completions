@@ -22,15 +22,14 @@ class LSTMLanguageModel(nn.Module):
 
     def generate(self, text, tokenizer, max_tokens=10):
         device = next(self.parameters()).device
-        x = tokenizer.encode(text, add_special_tokens=True, max_length=512, truncation=True)
-        x = torch.tensor(x).unsqueeze(0).to(device)
-        
+        x = tokenizer.encode(text, add_special_tokens=True, max_length=512, truncation=True, return_tensors="pt").to(device)
+
         for _ in range(max_tokens):
             attention_mask = torch.ones(1, x.size(1), dtype=torch.long).to(device)
             logits = self.forward(x, attention_mask)
             next_token_id = torch.argmax(logits, dim=1)
 
-            if next_token_id.item() == tokenizer.sep_token_id:
+            if next_token_id.item() == tokenizer.sep_token_id or next_token_id.item() == tokenizer.eos_token_id:
                 break
 
             x = torch.cat([x, next_token_id.unsqueeze(1)], dim=1)

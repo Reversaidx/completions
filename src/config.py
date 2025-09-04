@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 import yaml
 from pathlib import Path
 import torch
-
+torch.cuda.manual_seed_all(42)
 
 class ModelConfig(BaseSettings):
     hidden_dim: int = 128

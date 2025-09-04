@@ -44,7 +44,7 @@ def train_model(max_samples=1000):
         print(f"Epoch {epoch+1} | Train Loss: {train_loss:.3f}")
     
     # Сохраняем модель
-    torch.save(model.state_dict(), "../models/model_weights.pth")
+    torch.save(model.state_dict(), "./models/model_weights.pth")
     
     # Тестируем генерацию
     model.eval()
@@ -56,4 +56,4 @@ def train_model(max_samples=1000):
 
 
 if __name__ == "__main__":
-    train_model()
+    train_model(max_samples=10)
